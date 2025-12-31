@@ -62,7 +62,7 @@ Genera los dorks ahora.
 `;
 
         const message = await anthropic.messages.create({
-            model: "claude-sonnet-4-5",
+            model: "claude-sonnet-4-5-20250929",
             max_tokens: 1500,
             messages: [
                 {
