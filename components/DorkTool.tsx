@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Platform, SearchParameters } from '@/types';
+import { DorkTemplate } from '@/types/templates';
 import SearchConfigPanel from './SearchConfigPanel';
 import ParameterInputs from './ParameterInputs';
 import ResultsDisplay from './ResultsDisplay';
@@ -39,7 +40,7 @@ export default function DorkTool() {
         localStorage.removeItem('osint_dork_history');
     };
 
-    const handleGenerate = async () => {
+    const handleGenerate = async (template?: DorkTemplate) => {
         setLoading(true);
         setResults('');
         try {
@@ -48,7 +49,7 @@ export default function DorkTool() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ platform, parameters }),
+                body: JSON.stringify({ platform, parameters, templateInfo: template }),
             });
 
             const data = await res.json();

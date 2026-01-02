@@ -10,6 +10,66 @@ A sophisticated Open Source Intelligence (OSINT) reconnaissance tool powered by 
 - **Search History**: Local persistence of recent queries.
 - **Cybersecurity Aesthetic**: Dark mode interface designed for security professionals.
 
+## 🎯 Categorías OSINT Especializadas
+
+### 🎥 Cámaras IP y Videovigilancia
+- Hikvision (credenciales default)
+- Dahua DVR/NVR
+- Axis Network Cameras
+- webcamXP sin autenticación
+- Foscam
+
+### 📂 Directory Listing (Index Of)
+- Archivos de backup (.bak, .old, .sql)
+- Directorios admin
+- Archivos de configuración (.conf, .ini, .env)
+- Database dumps
+- Logs del servidor
+- SSH keys privadas
+- Directorios uploads
+
+### 🔌 Dispositivos IoT
+- Routers (panel admin)
+- Impresoras de red
+- Smart TVs (UPnP)
+- NAS (Synology, QNAP, WD)
+
+### ⚠️ Servicios Críticos Expuestos
+- RDP (Remote Desktop)
+- VNC sin autenticación
+- Elasticsearch
+- MongoDB sin password
+- Redis
+- Docker API
+
+### 🔐 Paneles de Administración
+- Jenkins CI/CD
+- phpMyAdmin
+- GitLab
+- WordPress
+- Adminer
+
+### 🔑 Archivos Sensibles
+- .env files
+- .git repositories
+- AWS credentials
+- SSH/PGP private keys
+
+## ⚠️ IMPORTANTE - USO ÉTICO
+
+Esta herramienta es exclusivamente para:
+✅ Pruebas de penetración autorizadas
+✅ Programas de bug bounty legítimos
+✅ Auditorías de seguridad con permiso explícito
+✅ Investigación educativa y académica
+
+❌ El uso no autorizado puede constituir un delito según:
+- Código Penal Español (Artículo 197)
+- Computer Fraud and Abuse Act (CFAA)
+- Legislación internacional aplicable
+
+Siempre obtén autorización explícita antes de realizar reconocimiento en infraestructuras que no te pertenecen.
+
 ## Setup
 
 1.  **Clone the repository**:
@@ -50,6 +110,13 @@ Generates dorks based on the provided parameters.
     "infoType": "subdomains",
     "filters": "-www",
     "exclusions": "staging.example.com"
+  },
+  "templateInfo": {
+      "name": "Template Name",
+      "category": "Category",
+      "severity": "HIGH",
+      "description": "...",
+      "credentials": "..."
   }
 }
 ```
@@ -67,8 +134,3 @@ Generates dorks based on the provided parameters.
 2.  Import the project in Vercel.
 3.  Add the `ANTHROPIC_API_KEY` to the Environment Variables settings in Vercel.
 4.  Deploy.
-
-## Legal Disclaimer
-
-⚠️ **Authorized Use Only**
-This tool is intended for educational purposes and authorized security assessments only. Using these search queries to target systems without explicit permission may violate laws such as the CFAA (Computer Fraud and Abuse Act) or GDPR. The user assumes all responsibility for actions taken with this tool.

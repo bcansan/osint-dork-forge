@@ -7,7 +7,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
     try {
-        const { platform, parameters } = await req.json();
+        const { platform, parameters, templateInfo } = await req.json();
 
         if (!process.env.ANTHROPIC_API_KEY) {
             return NextResponse.json(
@@ -27,18 +27,37 @@ export async function POST(req: NextRequest) {
 
         const instructions = platformInstructions[platform as string] || 'Generate standard OSINT queries.';
 
-        const systemPrompt = `Eres un experto en OSINT (Open Source Intelligence) y reconocimiento de infraestructuras.
+        const systemPrompt = `Eres un experto en OSINT (Open Source Intelligence) y reconocimiento de infraestructuras con especialización en:
+- Cámaras IP y sistemas de videovigilancia (Hikvision, Dahua, Axis, webcamXP, Foscam)
+- Directory listing y archivos expuestos (Index Of, backups, configs, logs)
+- Dispositivos IoT vulnerables (routers, impresoras, NAS, Smart TVs)
+- Servicios críticos sin autenticación (RDP, VNC, MongoDB, Elasticsearch, Redis, Docker)
+- Paneles de administración expuestos (Jenkins, phpMyAdmin, GitLab, WordPress)
+- Archivos sensibles (.env, .git, AWS credentials, SSH keys)
+
+${templateInfo ? `
+🎯 TEMPLATE APLICADO: ${templateInfo.name}
+📂 CATEGORÍA: ${templateInfo.category}
+⚠️ SEVERIDAD: ${templateInfo.severity}
+📝 DESCRIPCIÓN: ${templateInfo.description}
+${templateInfo.credentials ? `🔑 CREDENCIALES COMUNES: ${templateInfo.credentials}` : ''}
+
+Genera dorks específicos para este tipo de objetivo, considerando las credenciales por defecto y vectores de ataque comunes.
+` : ''}
+
 Tu tarea es generar dorks de búsqueda altamente efectivos y precisos para la plataforma: ${platform.toUpperCase()}.
 
 INSTRUCCIONES ESPECÍFICAS DE LA PLATAFORMA:
 ${instructions}
 
 REQUERIMIENTOS:
-1. Genera 3-5 variaciones de dorks optimizados para el objetivo.
-2. Explica brevemente la lógica de cada operador usado.
-3. Indica el nivel de especificidad (Bajo/Medio/Alto).
-4. Incluye advertencias sobre falsos positivos si aplica.
-5. NO incluyas introducciones largas, ve directo a los dorks.
+1. Genera 3-5 variaciones de dorks optimizados para el objetivo
+2. Explica brevemente la lógica de cada operador usado
+3. Indica el nivel de especificidad (Bajo/Medio/Alto)
+4. Incluye advertencias sobre falsos positivos si aplica
+5. Si hay credenciales por defecto conocidas, menciόnalas
+6. Añade recomendaciones de seguridad cuando sea relevante
+7. NO incluyas introducciones largas, ve directo a los dorks
 
 FORMATO DE SALIDA (Markdown):
 ### 1. [Nombre descriptivo dork]
@@ -47,7 +66,7 @@ FORMATO DE SALIDA (Markdown):
 \`\`\`
 *Explicación*: ...
 *Efectividad*: ...
-
+*Advertencia*: ...
 _(Repetir para las variaciones)_
 `;
 
