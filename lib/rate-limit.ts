@@ -32,8 +32,8 @@ export async function checkDorkRateLimit(
                 return await checkIPLimit(ip, 3, 'free');
             }
 
-            const limit = user.usage_limit || 3;
-            const used = user.usage_count || 0;
+            const limit = user.generations_limit || 3;
+            const used = user.generations_used || 0;
             const remaining = Math.max(0, limit - used);
 
             return {

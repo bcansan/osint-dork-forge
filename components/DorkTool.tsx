@@ -47,8 +47,8 @@ export default function DorkTool() {
             if (data.tier) {
                 setLimitData({
                     tier: data.tier,
-                    limit: data.usage_limit,
-                    remaining: data.usage_limit - data.usage_count
+                    limit: data.generations_limit,
+                    remaining: data.generations_limit - data.generations_used
                 });
             }
         } catch (e) {

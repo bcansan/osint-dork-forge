@@ -18,8 +18,8 @@ export async function createDorkUser(clerkId: string, email: string) {
             clerk_id: clerkId,
             email: email,
             tier: 'free',
-            usage_count: 0,
-            usage_limit: 3
+            generations_used: 0,
+            generations_limit: 3
         })
         .select()
         .single();
@@ -37,7 +37,7 @@ export async function incrementDorkUsage(userId: string) {
         // Fallback to update if RPC doesn't exist
         const { data: userData, error: fetchError } = await supabaseAdmin
             .from('dork_users')
-            .select('usage_count')
+            .select('generations_used')
             .eq('id', userId)
             .single();
 
@@ -46,7 +46,7 @@ export async function incrementDorkUsage(userId: string) {
         const { data: updatedData, error: updateError } = await supabaseAdmin
             .from('dork_users')
             .update({
-                usage_count: (userData.usage_count || 0) + 1
+                generations_used: (userData.generations_used || 0) + 1
             })
             .eq('id', userId)
             .select()
@@ -96,8 +96,8 @@ export async function updateDorkUserTier(
         .from('dork_users')
         .update({
             tier,
-            usage_limit: limit,
-            usage_count: 0,
+            generations_limit: limit,
+            generations_used: 0,
             period_start: new Date().toISOString(),
             period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         })

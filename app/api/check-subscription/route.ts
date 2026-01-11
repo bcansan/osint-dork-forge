@@ -9,15 +9,15 @@ export async function GET(req: NextRequest) {
         const email = user?.emailAddresses[0]?.emailAddress || null;
 
         if (!clerkId) {
-            return NextResponse.json({ tier: 'free', usage_count: 0, usage_limit: 0 });
+            return NextResponse.json({ tier: 'free', generations_used: 0, generations_limit: 0 });
         }
 
         // Check if admin
         if (email && await isDorkAdmin(email)) {
             return NextResponse.json({
                 tier: 'developer',
-                usage_count: 0,
-                usage_limit: Infinity,
+                generations_used: 0,
+                generations_limit: Infinity,
                 isAdmin: true
             });
         }
@@ -27,15 +27,15 @@ export async function GET(req: NextRequest) {
         if (!dbUser) {
             return NextResponse.json({
                 tier: 'free',
-                usage_count: 0,
-                usage_limit: 3
+                generations_used: 0,
+                generations_limit: 3
             });
         }
 
         return NextResponse.json({
             tier: dbUser.tier,
-            usage_count: dbUser.usage_count,
-            usage_limit: dbUser.usage_limit,
+            generations_used: dbUser.generations_used,
+            generations_limit: dbUser.generations_limit,
             period_end: dbUser.period_end
         });
     } catch (error) {
