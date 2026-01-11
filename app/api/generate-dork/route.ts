@@ -1,5 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { checkDorkRateLimit } from '@/lib/rate-limit';
+import { getDorkUser, createDorkUser, incrementDorkUsage, logDorkUsage } from '@/lib/db';
 
 const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY || '',
@@ -9,6 +12,25 @@ export async function POST(req: NextRequest) {
     try {
         const { platform, parameters, templateInfo } = await req.json();
 
+        // Auth and Rate Limiting
+        const { userId: clerkId } = await auth();
+        const user = await currentUser();
+        const email = user?.emailAddresses[0]?.emailAddress || null;
+        const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+
+        const rateLimit = await checkDorkRateLimit(clerkId, email, ip);
+
+        if (!rateLimit.allowed) {
+            return NextResponse.json(
+                {
+                    error: 'Rate limit exceeded',
+                    details: 'Has alcanzado tu límite de generaciones. Actualiza a Pro para obtener más.',
+                    rateLimit
+                },
+                { status: 429 }
+            );
+        }
+
         if (!process.env.ANTHROPIC_API_KEY) {
             return NextResponse.json(
                 { error: 'API Key not configured. Please set ANTHROPIC_API_KEY in .env.local' },
@@ -16,7 +38,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Platform-specific instructions
+        // Get or create user in Supabase to track usage
+        let dbUser = null;
+        if (clerkId && email) {
+            dbUser = await getDorkUser(clerkId);
+            if (!dbUser) {
+                dbUser = await createDorkUser(clerkId, email);
+            }
+        }
+
+        // Platform-specific instructions (Same as before...)
         const platformInstructions: Record<string, string> = {
             google: `Operadores disponibles: site:, inurl:, intitle:, filetype:, intext:, cache:, link:, related:, info:. Considera técnicas avanzadas como combinaciones booleanas y wildcards.`,
             shodan: `Operadores disponibles: hostname:, port:, country:, city:, org:, os:, product:, version:, vuln:, http.title:, ssl:, net:. Enfócate en identificación de servicios y vulnerabilidades.`,
@@ -81,7 +112,7 @@ Genera los dorks ahora.
 `;
 
         const message = await anthropic.messages.create({
-            model: "claude-sonnet-4-5-20250929",
+            model: "claude-3-5-sonnet-20241022",
             max_tokens: 1500,
             messages: [
                 {
@@ -94,7 +125,21 @@ Genera los dorks ahora.
 
         const textContent = message.content[0].type === 'text' ? message.content[0].text : '';
 
-        return NextResponse.json({ dorks: textContent });
+        // Track usage in DB if user is logged in
+        if (dbUser) {
+            try {
+                await incrementDorkUsage(dbUser.id);
+                await logDorkUsage(dbUser.id, 'generate_dork', true, { platform, parameters });
+            } catch (usageError) {
+                console.error('Error logging usage:', usageError);
+            }
+        }
+
+        return NextResponse.json({
+            dorks: textContent,
+            remaining: rateLimit.remaining - 1,
+            limit: rateLimit.limit
+        });
     } catch (error) {
         console.error('Error generating dorks:', error);
         return NextResponse.json({ error: 'Failed to generate dorks' }, { status: 500 });

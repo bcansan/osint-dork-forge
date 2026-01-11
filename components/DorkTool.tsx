@@ -6,9 +6,13 @@ import { DorkTemplate } from '@/types/templates';
 import SearchConfigPanel from './SearchConfigPanel';
 import ParameterInputs from './ParameterInputs';
 import ResultsDisplay from './ResultsDisplay';
-import { History, Trash2 } from 'lucide-react';
+import RateLimitModal from './RateLimitModal';
+import { History, Trash2, Zap } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
+import Link from 'next/link';
 
 export default function DorkTool() {
+    const { isSignedIn } = useAuth();
     const [platform, setPlatform] = useState<Platform>('google');
     const [parameters, setParameters] = useState<SearchParameters>({
         target: '',
@@ -21,16 +25,39 @@ export default function DorkTool() {
     const [history, setHistory] = useState<string[]>([]);
     const [mounted, setMounted] = useState(false);
 
+    // Rate Limit State
+    const [rateLimitModalOpen, setRateLimitModalOpen] = useState(false);
+    const [limitData, setLimitData] = useState({ tier: 'free', limit: 3, remaining: 3 });
+
     useEffect(() => {
         setMounted(true);
         const saved = localStorage.getItem('osint_dork_history');
         if (saved) {
             try { setHistory(JSON.parse(saved)); } catch (e) { console.error(e); }
         }
+
+        // Initial subscription check
+        fetchSubscription();
     }, []);
 
+    const fetchSubscription = async () => {
+        try {
+            const res = await fetch('/api/check-subscription');
+            const data = await res.json();
+            if (data.tier) {
+                setLimitData({
+                    tier: data.tier,
+                    limit: data.usage_limit,
+                    remaining: data.usage_limit - data.usage_count
+                });
+            }
+        } catch (e) {
+            console.error('Error fetching subscription:', e);
+        }
+    };
+
     const saveToHistory = (newResult: string) => {
-        const newHistory = [newResult, ...history].slice(0, 10); // Keep last 10
+        const newHistory = [newResult, ...history].slice(0, 10);
         setHistory(newHistory);
         localStorage.setItem('osint_dork_history', JSON.stringify(newHistory));
     };
@@ -53,9 +80,17 @@ export default function DorkTool() {
             });
 
             const data = await res.json();
-            if (data.dorks) {
+
+            if (res.status === 429) {
+                setLimitData(data.rateLimit);
+                setRateLimitModalOpen(true);
+                setResults('');
+            } else if (data.dorks) {
                 setResults(data.dorks);
                 saveToHistory(data.dorks);
+                if (data.remaining !== undefined) {
+                    setLimitData(prev => ({ ...prev, remaining: data.remaining }));
+                }
             } else if (data.error) {
                 setResults(`Error: ${data.error}`);
             } else {
@@ -73,7 +108,28 @@ export default function DorkTool() {
 
     return (
         <div className="max-w-5xl mx-auto py-4">
+            <RateLimitModal
+                isOpen={rateLimitModalOpen}
+                onClose={() => setRateLimitModalOpen(false)}
+                tier={limitData.tier}
+                limit={limitData.limit}
+            />
+
             <div className="mb-8 text-center space-y-2">
+                <div className="flex justify-center mb-4">
+                    <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest text-slate-400">
+                        <span className={`w-1.5 h-1.5 rounded-full ${limitData.remaining > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        Tier: <span className="text-primary font-bold">{limitData.tier}</span>
+                        <span className="mx-2 opacity-30">|</span>
+                        Remaining: <span className="text-white font-bold">{limitData.remaining === Infinity ? '∞' : limitData.remaining}</span>
+                        {limitData.tier === 'free' && (
+                            <Link href="/pricing" className="ml-2 text-primary hover:underline flex items-center gap-1 group">
+                                <Zap className="w-3 h-3 fill-current group-hover:scale-110 transition-transform" />
+                                Upgrade
+                            </Link>
+                        )}
+                    </div>
+                </div>
                 <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-secondary tracking-tighter">
                     RECONNAISSANCE ENGINE
                 </h1>
@@ -93,7 +149,7 @@ export default function DorkTool() {
             />
 
             <div className="mt-8 space-y-8">
-                <ResultsDisplay results={results} />
+                <ResultsDisplay results={results} tier={limitData.tier} />
 
                 {history.length > 0 && (
                     <div className="border-t border-slate-800 pt-8">
